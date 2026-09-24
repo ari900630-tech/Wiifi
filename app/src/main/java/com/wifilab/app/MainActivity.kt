@@ -161,6 +161,34 @@ class MainActivity : Activity() {
         history.text = loadHistory()
         root.addView(history)
 
+        val hackerTitle = TextView(this).apply {
+            text = "🕶️ Hacker Lab — מצב לימוד בטוח"
+            textSize = 20f
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding(4, 22, 4, 10)
+        }
+        root.addView(hackerTitle)
+
+        val hackerInfo = cardView()
+        hackerInfo.text = "כלים חינוכיים ללא תקיפה של רשתות:\n\n" +
+                "🧪 סימולציית CTF מקומית — תרגול מושגים בלי לגעת ברשת אמיתית.\n" +
+                "🔐 בודק חוזק סיסמה שהמשתמש מזין מקומית בלבד.\n" +
+                "🛡️ בדיקת אבטחת הרשת המחוברת — WPA/WPA2/WPA3, עוצמת אות ופרטי חיבור זמינים.\n" +
+                "📚 שיעורים על Handshake, Hash, Salt, DNS ו‑DHCP.\n\n" +
+                "הכלים אינם מבצעים פריצת סיסמאות, deauthentication, יירוט תעבורה או סריקה לא מורשית."
+        root.addView(hackerInfo)
+
+        val ctfButton = Button(this).apply {
+            text = "🧩 פתח CTF לימודי"
+            setOnClickListener {
+                diagnosis.text = "🧩 CTF מקומי — שלב 1\n\n" +
+                        "מטרה: זהה את המושג שמתאר תרגום שם מתחם לכתובת IP.\n\n" +
+                        "א) DHCP\nב) DNS\nג) WPA3\nד) BSSID\n\n" +
+                        "תשובה נכונה: ב) DNS\n\nזהו תרגול מקומי בלבד — אין חיבור או תקיפה של רשת."
+            }
+        }
+        root.addView(ctfButton, LinearLayout.LayoutParams(-1, 58))
+
         val lesson = TextView(this).apply {
             text = "שיעור מהיר\n• WPA2/WPA3: מנגנוני הגנה של רשתות Wi‑Fi.\n• 4‑Way Handshake: תהליך אימות.\n• Hash ו‑Salt: מושגים בסיסיים בהגנת סיסמאות.\n• Rate Limiting: האטת ניסיונות חוזרים.\n\nכל בדיקה מיועדת לרשתות ולמכשירים שיש לך הרשאה לבדוק."
             textSize = 16f
