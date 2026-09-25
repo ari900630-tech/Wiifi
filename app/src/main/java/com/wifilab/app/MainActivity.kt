@@ -228,21 +228,141 @@ class MainActivity : Activity() {
     }
 
     private fun showControlledAttackLab() {
-        val timestamp = now()
-        diagnosis.text = "🎯 חדירה מבוקרת — מצב מעבדה\n\n" +
-                "1. 🎯 יעד: Lab CTF מקומי בלבד\n" +
-                "2. 🔎 זיהוי שירות: יעד תרגול וירטואלי\n" +
-                "3. 🔐 בדיקת התחברות: ניסיון דמה מבוקר\n" +
-                "4. 🧱 תגובת יעד: הניסיון נרשם ונחסם לפי מדיניות המעבדה\n" +
-                "5. 🚨 התראה: פעילות חריגה זוהתה\n" +
-                "6. 🛡️ Blue Team: האירוע נוסף ליומן ההגנה\n" +
-                "7. ✅ סיום: אין פנייה לשרתים חיצוניים ואין הסתרת פעילות\n\n" +
-                "לוג מעבדה:\n" +
-                "[" + timestamp + "] LAB_START target=LOCAL_CTF\n" +
-                "[" + now() + "] AUTH_TEST result=BLOCKED\n" +
-                "[" + now() + "] DETECTION alert=TRIGGERED\n" +
-                "[" + now() + "] LAB_END status=COMPLETED\n\n" +
-                "הסימולציה גלויה ומיועדת רק לתרגול. היא אינה תוקפת שרת אמיתי ואינה מנסה לעקוף זיהוי."
+        diagnosis.text = "⏳ מפעיל שרת CTF מקומי אמיתי במכשיר…"
+        executor.execute {
+            val server = LocalCtfServer()
+            try {
+                server.start()
+                val port = server.port
+                val results = mutableListOf<String>()
+                results.add("[" + now() + "] LAB_START target=127.0.0.1:" + port)
+
+                val probe = sendLocalHttp(port, "GET", "/")
+                results.add("[" + now() + "] PROBE status=" + probe.code)
+
+                val admin = sendLocalHttp(port, "GET", "/ctf/admin")
+                results.add("[" + now() + "] ADMIN_TEST status=" + admin.code)
+
+                val login = sendLocalHttp(port, "POST", "/ctf/login", "username=student&password=ctf-demo")
+                results.add("[" + now() + "] LOGIN_TEST status=" + login.code)
+
+                val verdict = if (login.code == 200 && login.body.contains("CTF_OK")) {
+                    "✅ יעד המעבדה קיבל את ניסיון התרגול"
+                } else {
+                    "🛡️ יעד המעבדה חסם את ניסיון התרגול"
+                }
+
+                server.stop()
+                results.add("[" + now() + "] LAB_END status=COMPLETED")
+
+                runOnUiThread {
+                    diagnosis.text = "🎯 חדירה מבוקרת — שרת CTF מקומי אמיתי\n\n" +
+                            "הבקשות נשלחו בפועל אל 127.0.0.1 בלבד.\n\n" +
+                            "1. 🔎 Probe HTTP: " + probe.code + "\n" +
+                            "2. 🔐 בדיקת /ctf/admin: " + admin.code + "\n" +
+                            "3. 🔑 ניסיון התחברות CTF: " + login.code + "\n" +
+                            "4. " + verdict + "\n\n" +
+                            "לוג מעבדה:\n" + results.joinToString("\n") +
+                            "\n\nאין פנייה לשרתים חיצוניים ואין מנגנון הסתרה."
+                }
+            } catch (e: Exception) {
+                server.stop()
+                runOnUiThread {
+                    diagnosis.text = "❌ מעבדת ה-CTF המקומית נכשלה\n\n" +
+                            e.javaClass.simpleName + ": " + (e.message ?: "שגיאה לא ידועה")
+                }
+            }
+        }
+    }
+
+    private data class LocalHttpResponse(val code: Int, val body: String)
+
+    private fun sendLocalHttp(port: Int, method: String, path: String, body: String = ""): LocalHttpResponse {
+        val socket = java.net.Socket("127.0.0.1", port)
+        socket.soTimeout = 3000
+        socket.getOutputStream().bufferedWriter(Charsets.UTF_8).use { out ->
+            out.write(method + " " + path + " HTTP/1.1\\r\\n")
+            out.write("Host: 127.0.0.1:" + port + "\\r\\n")
+            out.write("Connection: close\\r\\n")
+            if (body.isNotEmpty()) {
+                out.write("Content-Type: application/x-www-form-urlencoded\\r\\n")
+                out.write("Content-Length: " + body.toByteArray(Charsets.UTF_8).size + "\\r\\n")
+            }
+            out.write("\\r\\n")
+            if (body.isNotEmpty()) out.write(body)
+            out.flush()
+        }
+        val response = socket.getInputStream().bufferedReader(Charsets.UTF_8).use { it.readText() }
+        socket.close()
+        val firstLine = response.lineSequence().firstOrNull() ?: ""
+        val code = firstLine.split(" ").getOrNull(1)?.toIntOrNull() ?: 0
+        val bodyPart = response.substringAfter("\\r\\n\\r\\n", response.substringAfter("\\n\\n", ""))
+        return LocalHttpResponse(code, bodyPart)
+    }
+
+    private class LocalCtfServer {
+        private var serverSocket: java.net.ServerSocket? = null
+        val port: Int get() = serverSocket?.localPort ?: 0
+        private val worker = Executors.newSingleThreadExecutor()
+
+        fun start() {
+            serverSocket = java.net.ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
+            worker.execute {
+                try {
+                    val client = serverSocket?.accept() ?: return@execute
+                    handle(client)
+                    client.close()
+                } catch (_: Exception) {
+                }
+            }
+        }
+
+        private fun handle(socket: java.net.Socket) {
+            socket.soTimeout = 3000
+            val input = socket.getInputStream().bufferedReader(Charsets.UTF_8)
+            val requestLine = input.readLine() ?: return
+            var contentLength = 0
+            while (true) {
+                val line = input.readLine() ?: return
+                if (line.isEmpty()) break
+                if (line.startsWith("Content-Length:", true)) {
+                    contentLength = line.substringAfter(":").trim().toIntOrNull() ?: 0
+                }
+            }
+            val body = if (contentLength > 0) {
+                val chars = CharArray(contentLength)
+                input.read(chars)
+                String(chars)
+            } else ""
+            val parts = requestLine.split(" ")
+            val method = parts.getOrNull(0) ?: ""
+            val path = parts.getOrNull(1) ?: "/"
+            val responseBody = when {
+                method == "GET" && path == "/" -> "LOCAL_CTF_READY"
+                method == "GET" && path == "/ctf/admin" -> "ADMIN_ENDPOINT_VISIBLE"
+                method == "POST" && path == "/ctf/login" &&
+                        body.contains("username=student") && body.contains("password=ctf-demo") ->
+                    "CTF_OK: training credentials accepted"
+                else -> "CTF_BLOCKED"
+            }
+            val code = if (responseBody.startsWith("CTF_OK")) 200
+            else if (path == "/ctf/admin") 403 else 404
+            val reason = if (code == 200) "OK" else if (code == 403) "Forbidden" else "Not Found"
+            val response = "HTTP/1.1 " + code + " " + reason +
+                    "\\r\\nContent-Type: text/plain; charset=utf-8\\r\\nContent-Length: " +
+                    responseBody.toByteArray(Charsets.UTF_8).size +
+                    "\\r\\nConnection: close\\r\\n\\r\\n" + responseBody
+            socket.getOutputStream().bufferedWriter(Charsets.UTF_8).use { out ->
+                out.write(response)
+                out.flush()
+            }
+        }
+
+        fun stop() {
+            try { serverSocket?.close() } catch (_: Exception) {}
+            serverSocket = null
+            worker.shutdownNow()
+        }
     }
 
     private fun showPasswordStrengthDialog() {
