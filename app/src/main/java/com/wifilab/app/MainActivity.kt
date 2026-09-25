@@ -196,6 +196,12 @@ class MainActivity : Activity() {
         }
         root.addView(passwordButton, LinearLayout.LayoutParams(-1, 58))
 
+        val attackLabButton = Button(this).apply {
+            text = "🎯 הפעל חדירה מבוקרת למעבדת CTF"
+            setOnClickListener { showControlledAttackLab() }
+        }
+        root.addView(attackLabButton, LinearLayout.LayoutParams(-1, 58))
+
         val hashButton = Button(this).apply {
             text = "🧬 הדגמת Hash + Salt"
             setOnClickListener { showHashDemoDialog() }
@@ -219,6 +225,24 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this)
         scroll.addView(root)
         setContentView(scroll)
+    }
+
+    private fun showControlledAttackLab() {
+        val timestamp = now()
+        diagnosis.text = "🎯 חדירה מבוקרת — מצב מעבדה\n\n" +
+                "1. 🎯 יעד: Lab CTF מקומי בלבד\n" +
+                "2. 🔎 זיהוי שירות: יעד תרגול וירטואלי\n" +
+                "3. 🔐 בדיקת התחברות: ניסיון דמה מבוקר\n" +
+                "4. 🧱 תגובת יעד: הניסיון נרשם ונחסם לפי מדיניות המעבדה\n" +
+                "5. 🚨 התראה: פעילות חריגה זוהתה\n" +
+                "6. 🛡️ Blue Team: האירוע נוסף ליומן ההגנה\n" +
+                "7. ✅ סיום: אין פנייה לשרתים חיצוניים ואין הסתרת פעילות\n\n" +
+                "לוג מעבדה:\n" +
+                "[" + timestamp + "] LAB_START target=LOCAL_CTF\n" +
+                "[" + now() + "] AUTH_TEST result=BLOCKED\n" +
+                "[" + now() + "] DETECTION alert=TRIGGERED\n" +
+                "[" + now() + "] LAB_END status=COMPLETED\n\n" +
+                "הסימולציה גלויה ומיועדת רק לתרגול. היא אינה תוקפת שרת אמיתי ואינה מנסה לעקוף זיהוי."
     }
 
     private fun showPasswordStrengthDialog() {
