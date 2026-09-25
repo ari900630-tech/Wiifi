@@ -11,6 +11,7 @@ import android.content.SharedPreferences
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -189,6 +190,24 @@ class MainActivity : Activity() {
         }
         root.addView(ctfButton, LinearLayout.LayoutParams(-1, 58))
 
+        val passwordButton = Button(this).apply {
+            text = "🔐 בדיקת חוזק סיסמה מקומית"
+            setOnClickListener { showPasswordStrengthDialog() }
+        }
+        root.addView(passwordButton, LinearLayout.LayoutParams(-1, 58))
+
+        val hashButton = Button(this).apply {
+            text = "🧬 הדגמת Hash + Salt"
+            setOnClickListener { showHashDemoDialog() }
+        }
+        root.addView(hashButton, LinearLayout.LayoutParams(-1, 58))
+
+        val hardeningButton = Button(this).apply {
+            text = "🛡️ בדיקת הקשחת רשת"
+            setOnClickListener { showHardeningChecklist() }
+        }
+        root.addView(hardeningButton, LinearLayout.LayoutParams(-1, 58))
+
         val lesson = TextView(this).apply {
             text = "שיעור מהיר\n• WPA2/WPA3: מנגנוני הגנה של רשתות Wi‑Fi.\n• 4‑Way Handshake: תהליך אימות.\n• Hash ו‑Salt: מושגים בסיסיים בהגנת סיסמאות.\n• Rate Limiting: האטת ניסיונות חוזרים.\n\nכל בדיקה מיועדת לרשתות ולמכשירים שיש לך הרשאה לבדוק."
             textSize = 16f
@@ -200,6 +219,88 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this)
         scroll.addView(root)
         setContentView(scroll)
+    }
+
+    private fun showPasswordStrengthDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "הזן סיסמה לבדיקה מקומית"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("בדיקת חוזק מקומית")
+            .setMessage("הסיסמה נשארת במכשיר ואינה נשלחת לשום שרת.")
+            .setView(input)
+            .setPositiveButton("בדוק") { _, _ ->
+                diagnosis.text = "🔐 תוצאת בדיקה מקומית\n\n" + passwordScore(input.text.toString())
+            }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
+    private fun passwordScore(password: String): String {
+        if (password.isEmpty()) return "לא הוזנה סיסמה."
+        var score = 0
+        if (password.length >= 12) score += 2 else if (password.length >= 8) score++
+        if (password.any { it.isUpperCase() }) score++
+        if (password.any { it.isLowerCase() }) score++
+        if (password.any { it.isDigit() }) score++
+        if (password.any { !it.isLetterOrDigit() }) score++
+        val common = setOf("password", "12345678", "123456789", "qwerty", "letmein", "admin", "wifi")
+        if (common.contains(password.lowercase(Locale.getDefault()))) score = maxOf(0, score - 3)
+        val level = when { score >= 6 -> "חזק"; score >= 4 -> "בינוני"; else -> "חלש" }
+        val tips = mutableListOf<String>()
+        if (password.length < 12) tips.add("השתמש ב-12 תווים או יותר")
+        if (!password.any { it.isUpperCase() }) tips.add("הוסף אות גדולה")
+        if (!password.any { it.isLowerCase() }) tips.add("הוסף אות קטנה")
+        if (!password.any { it.isDigit() }) tips.add("הוסף ספרה")
+        if (!password.any { !it.isLetterOrDigit() }) tips.add("הוסף סימן מיוחד")
+        return "רמה: " + level + " (ציון " + score + "/7)\n\n" +
+                if (tips.isEmpty()) "אין הצעות נוספות לפי הבדיקה המקומית." else "המלצות:\n• " + tips.joinToString("\n• ")
+    }
+
+    private fun showHashDemoDialog() {
+        val input = android.widget.EditText(this).apply { hint = "טקסט לדוגמה" }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Hash + Salt — הדגמה")
+            .setMessage("ההדגמה מתבצעת מקומית בלבד ואינה מפצחת סיסמאות.")
+            .setView(input)
+            .setPositiveButton("חשב") { _, _ ->
+                val text = input.text.toString()
+                val salt = "WiFiLabDemoSalt"
+                diagnosis.text = "🧬 Hash + Salt\n\nSalt לדוגמה: " + salt +
+                        "\nSHA-256(text + salt):\n" + sha256(text + salt) +
+                        "\n\nהדגמה לימודית בלבד."
+            }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
+    private fun sha256(value: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun showHardeningChecklist() {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork
+        val caps = network?.let { cm.getNetworkCapabilities(it) }
+        val wifiConnected = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        val info = try { wifi.connectionInfo } catch (_: Exception) { null }
+        val ssid = info?.ssid?.trim('"') ?: "לא זמין"
+        val speed = if ((info?.linkSpeed ?: -1) >= 0) info?.linkSpeed.toString() + " Mbps" else "לא זמין"
+        diagnosis.text = "🛡️ הקשחת רשת — בדיקות בטוחות\n\n" +
+                "חיבור Wi‑Fi: " + if (wifiConnected) "✅" else "❌" + "\n" +
+                "SSID: " + ssid + "\n" +
+                "מהירות קישור: " + speed + "\n\n" +
+                "Checklist לנתב שלך:\n" +
+                "☐ השתמש ב-WPA2-AES או WPA3\n" +
+                "☐ כבה WEP ותקנים ישנים אם אינם נחוצים\n" +
+                "☐ השתמש בסיסמת Wi‑Fi ייחודית וחזקה\n" +
+                "☐ עדכן קושחת נתב\n" +
+                "☐ שנה סיסמת ניהול ברירת מחדל\n" +
+                "☐ כבה WPS אם אינך זקוק לו\n" +
+                "☐ בדוק אילו מכשירים מורשים להתחבר\n\n" +
+                "הבדיקה אינה משנה הגדרות ואינה תוקפת את הרשת."
     }
 
     private fun cardView(): TextView = TextView(this).apply {
