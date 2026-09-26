@@ -21,6 +21,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
+import android.net.wifi.WifiNetworkSpecifier
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -41,6 +42,8 @@ class MainActivity : Activity() {
     private lateinit var history: TextView
     private var lastScanResults: List<ScanResult> = emptyList()
     private var selectedNetworkName: String? = null
+    private var selectedScanResult: ScanResult? = null
+    private var passwordNetworkCallback: ConnectivityManager.NetworkCallback? = null
     private val executor = Executors.newSingleThreadExecutor()
     private val permissionRequest = 4102
 
@@ -131,6 +134,12 @@ class MainActivity : Activity() {
             setOnClickListener { showNetworkSelectionDialog() }
         }
         root.addView(selectNetworkButton, LinearLayout.LayoutParams(-1, 58))
+
+        val verifyPasswordButton = Button(this).apply {
+            text = "🔑 אמת סיסמה לרשת שנבחרה"
+            setOnClickListener { showWifiPasswordVerificationDialog() }
+        }
+        root.addView(verifyPasswordButton, LinearLayout.LayoutParams(-1, 58))
 
         val diagnosisTitle = TextView(this).apply {
             text = "🌐 אבחון חיבור — Internet / DNS / Gateway"
@@ -327,6 +336,7 @@ class MainActivity : Activity() {
             .setItems(names) { _, which ->
                 val chosen = visible[which]
                 selectedNetworkName = chosen.SSID
+                selectedScanResult = chosen
                 diagnosis.text = "🎯 רשת נבחרה לתרגול\n\n" +
                         "SSID: " + chosen.SSID + "\n" +
                         "BSSID: " + chosen.BSSID + "\n" +
@@ -335,6 +345,93 @@ class MainActivity : Activity() {
             }
             .setNegativeButton("ביטול", null)
             .show()
+    }
+
+    private fun showWifiPasswordVerificationDialog() {
+        val chosen = selectedScanResult
+        if (chosen == null) {
+            diagnosis.text = "🔑 קודם בחר רשת מהרשימה.\n\nהבדיקה משתמשת ברשת שבחרת ובסיסמה שאתה מזין."
+            return
+        }
+        if (Build.VERSION.SDK_INT < 29) {
+            diagnosis.text = "ℹ️ אימות סיסמת Wi‑Fi דורש Android 10 (API 29) ומעלה."
+            return
+        }
+        val input = android.widget.EditText(this).apply {
+            hint = "סיסמת ה‑Wi‑Fi"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val security = when {
+            chosen.capabilities.contains("SAE") -> "WPA3"
+            chosen.capabilities.contains("WPA2") -> "WPA2"
+            chosen.capabilities.contains("WPA") -> "WPA"
+            chosen.capabilities.contains("WEP") -> "WEP"
+            chosen.capabilities.contains("OWE") -> "OWE"
+            else -> "OPEN"
+        }
+        val message = if (security == "OPEN") {
+            "הרשת שנבחרה פתוחה. אין צורך בסיסמה; ננסה לאמת חיבור אליה."
+        } else {
+            "הרשת: \${chosen.SSID}\nאבטחה מזוהה: \$security\n\nהסיסמה משמשת רק לניסיון החיבור. Android עשוי להציג אישור חיבור. האפליקציה אינה שולחת את הסיסמה לשרת."
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("אימות גישה לרשת שלך")
+            .setMessage(message)
+            .setView(input)
+            .setPositiveButton("התחבר ובדוק") { _, _ ->
+                verifyWifiPassword(chosen, input.text.toString(), security)
+            }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
+    private fun verifyWifiPassword(chosen: ScanResult, password: String, security: String) {
+        if (security != "OPEN" && password.isEmpty()) {
+            diagnosis.text = "❌ לא הוזנה סיסמה."
+            return
+        }
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        passwordNetworkCallback?.let {
+            try { cm.unregisterNetworkCallback(it) } catch (_: Exception) {}
+        }
+        diagnosis.text = "⏳ מנסה לאמת גישה ל‑\${chosen.SSID}…\n\nAndroid עשוי להציג חלון אישור חיבור.\nהבדיקה אינה מנסה סיסמאות אחרות."
+        val builder = WifiNetworkSpecifier.Builder().setSsid(chosen.SSID)
+        try {
+            when {
+                security == "WPA3" -> builder.setWpa3Passphrase(password)
+                security == "WPA2" || security == "WPA" -> builder.setWpa2Passphrase(password)
+                security == "OPEN" -> Unit
+                else -> {
+                    diagnosis.text = "⚠️ סוג האבטחה \$security אינו נתמך על ידי מנגנון החיבור הזה."
+                    return
+                }
+            }
+            val request = android.net.NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .setNetworkSpecifier(builder.build())
+                .build()
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: android.net.Network) {
+                    runOnUiThread {
+                        diagnosis.text = "✅ הסיסמה אומתה — Android הצליח ליצור חיבור לרשת.\n\nSSID: \${chosen.SSID}\nBSSID: \${chosen.BSSID}\nאבטחה: \$security\n\nזהו ניסיון חיבור אמיתי לרשת שבחרת, לא סימולציה."
+                    }
+                    try { cm.unregisterNetworkCallback(this) } catch (_: Exception) {}
+                    passwordNetworkCallback = null
+                }
+                override fun onUnavailable() {
+                    runOnUiThread {
+                        diagnosis.text = "❌ החיבור לא אושר.\n\nייתכן שהסיסמה שגויה, שהרשת אינה זמינה, או ש‑Android דחה את הבקשה.\n\nלא בוצעו ניסיונות נוספים."
+                    }
+                    passwordNetworkCallback = null
+                }
+            }
+            passwordNetworkCallback = callback
+            cm.requestNetwork(request, callback, 15000)
+        } catch (e: Exception) {
+            passwordNetworkCallback = null
+            diagnosis.text = "❌ לא ניתן לבצע את בדיקת החיבור.\n\n" + e.javaClass.simpleName + ": " + (e.message ?: "שגיאה לא ידועה")
+        }
     }
 
     private fun showControlledAttackLab() {
