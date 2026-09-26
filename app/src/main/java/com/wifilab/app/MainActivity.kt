@@ -26,6 +26,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.graphics.drawable.GradientDrawable
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -81,8 +82,9 @@ class MainActivity : Activity() {
             textSize = 32f
             setTextColor(android.graphics.Color.WHITE)
             gravity = Gravity.CENTER
+            setPadding(0, 8, 0, 8)
         }
-        root.addView(title, LinearLayout.LayoutParams(-1, 70))
+        root.addView(title, LinearLayout.LayoutParams(-1, 78))
 
         val subtitle = TextView(this).apply {
             text = "מרכז שליטה לרשת הביתית • מידע אמיתי מהמכשיר • גרסה 2.0"
@@ -222,9 +224,86 @@ class MainActivity : Activity() {
         }
         root.addView(lesson)
 
-        val scroll = ScrollView(this)
-        scroll.addView(root)
-        setContentView(scroll)
+        // עיצוב חדש: תוכן גלילה + סרגל ניווט קבוע בתחתית
+        root.setPadding(28, 28, 28, 120)
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(root)
+        }
+
+        val bottomBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(10, 8, 10, 8)
+            setBackgroundColor(android.graphics.Color.rgb(10, 18, 31))
+            elevation = 18f
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+
+        fun navButton(label: String): Button = Button(this).apply {
+            text = label
+            textSize = 13f
+            setTextColor(android.graphics.Color.WHITE)
+            background = GradientDrawable().apply {
+                cornerRadius = 22f
+                setColor(android.graphics.Color.rgb(22, 38, 62))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, 58, 1f).apply {
+                setMargins(5, 0, 5, 0)
+            }
+        }
+
+        val homeNav = navButton("⌂
+ראשי")
+        val wifiNav = navButton("📡
+רשתות")
+        val securityNav = navButton("🛡️
+אבטחה")
+        bottomBar.addView(homeNav)
+        bottomBar.addView(wifiNav)
+        bottomBar.addView(securityNav)
+
+        val frame = android.widget.FrameLayout(this)
+        frame.addView(scroll, android.widget.FrameLayout.LayoutParams(-1, -1))
+        frame.addView(bottomBar, android.widget.FrameLayout.LayoutParams(-1, 74, Gravity.BOTTOM))
+
+        fun scrollToView(target: View) {
+            scroll.post { scroll.smoothScrollTo(0, target.top.coerceAtLeast(0)) }
+        }
+        homeNav.setOnClickListener { scroll.smoothScrollTo(0, 0) }
+        wifiNav.setOnClickListener { scrollToView(networks) }
+        securityNav.setOnClickListener { scrollToView(hackerTitle) }
+
+        // מראה אחיד חדש לכפתורים ולכרטיסים
+        for (i in 0 until root.childCount) {
+            val child = root.getChildAt(i)
+            if (child is Button) {
+                child.setTextColor(android.graphics.Color.WHITE)
+                child.background = GradientDrawable().apply {
+                    cornerRadius = 18f
+                    setColor(android.graphics.Color.rgb(20, 42, 68))
+                    setStroke(1, android.graphics.Color.rgb(45, 105, 150))
+                }
+                child.elevation = 5f
+            } else if (child is TextView && child != title && child != subtitle && child != lesson) {
+                child.background = GradientDrawable().apply {
+                    cornerRadius = 18f
+                    setColor(android.graphics.Color.rgb(14, 25, 43))
+                }
+            }
+        }
+
+        val liveBadge = TextView(this).apply {
+            text = "● LIVE  •  נתונים בזמן אמת  •  ללא נתוני דמה"
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setTextColor(android.graphics.Color.rgb(100, 230, 255))
+            setPadding(0, 8, 0, 18)
+        }
+        root.addView(liveBadge, 2)
+
+        setContentView(frame)
     }
 
     private fun showControlledAttackLab() {
