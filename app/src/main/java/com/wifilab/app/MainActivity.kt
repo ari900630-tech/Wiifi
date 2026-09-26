@@ -77,7 +77,7 @@ class MainActivity : Activity() {
         }
 
         val title = TextView(this).apply {
-            text = "WiFi Lab"
+            text = "WiFi Lab — מעבדת Wi‑Fi"
             textSize = 30f
             setTextColor(android.graphics.Color.WHITE)
             gravity = Gravity.CENTER
@@ -85,7 +85,7 @@ class MainActivity : Activity() {
         root.addView(title, LinearLayout.LayoutParams(-1, 70))
 
         val subtitle = TextView(this).apply {
-            text = "מעבדת לימוד ואבחון Wi‑Fi — מידע אמיתי מהמכשיר"
+            text = "אבחון, לימוד ותרגול Wi‑Fi — מידע אמיתי מהמכשיר"
             textSize = 15f
             setTextColor(android.graphics.Color.LTGRAY)
             gravity = Gravity.CENTER
@@ -102,13 +102,13 @@ class MainActivity : Activity() {
         root.addView(status, LinearLayout.LayoutParams(-1, -2))
 
         val refresh = Button(this).apply {
-            text = "רענן אבחון רשת"
+            text = "🔄 רענן נתוני רשת"
             setOnClickListener { updateNetworkInfo() }
         }
         root.addView(refresh, LinearLayout.LayoutParams(-1, 58))
 
         val scanButton = Button(this).apply {
-            text = "סרוק רשתות Wi‑Fi בסביבה"
+            text = "📡 סרוק רשתות Wi‑Fi"
             setOnClickListener { startWifiScan() }
         }
         root.addView(scanButton, LinearLayout.LayoutParams(-1, 58))
@@ -118,13 +118,13 @@ class MainActivity : Activity() {
             setTextColor(android.graphics.Color.WHITE)
             setPadding(18, 18, 18, 18)
             setBackgroundColor(android.graphics.Color.rgb(18, 25, 38))
-            text = "רשתות בסביבה:\nלחץ על «סרוק רשתות Wi‑Fi בסביבה» כדי להתחיל."
+            text = "📡 רשתות Wi‑Fi בסביבה\nלחץ על «סרוק רשתות Wi‑Fi» כדי להתחיל סריקה אמיתית."
         }
         root.addView(networks, LinearLayout.LayoutParams(-1, -2))
 
 
         val diagnosisTitle = TextView(this).apply {
-            text = "🌐 בדיקת Internet / DNS / Gateway"
+            text = "🌐 אבחון חיבור לאינטרנט ולרשת"
             textSize = 20f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(4, 22, 4, 10)
@@ -132,7 +132,7 @@ class MainActivity : Activity() {
         root.addView(diagnosisTitle)
 
         val diagnoseButton = Button(this).apply {
-            text = "בדוק Internet / DNS / Gateway"
+            text = "🔎 בדוק Internet, DNS ו‑Gateway"
             setOnClickListener { runDiagnosis() }
         }
         root.addView(diagnoseButton, LinearLayout.LayoutParams(-1, 58))
@@ -142,7 +142,7 @@ class MainActivity : Activity() {
         root.addView(diagnosis)
 
         val historyTitle = TextView(this).apply {
-            text = "📊 היסטוריית בדיקות"
+            text = "📊 היסטוריית אבחון"
             textSize = 20f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(4, 22, 4, 10)
@@ -163,7 +163,7 @@ class MainActivity : Activity() {
         root.addView(history)
 
         val hackerTitle = TextView(this).apply {
-            text = "🕶️ Hacker Lab — מצב לימוד בטוח"
+            text = "🛡️ מעבדת אבטחה ותרגול"
             textSize = 20f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(4, 22, 4, 10)
@@ -171,16 +171,16 @@ class MainActivity : Activity() {
         root.addView(hackerTitle)
 
         val hackerInfo = cardView()
-        hackerInfo.text = "כלים חינוכיים ללא תקיפה של רשתות:\n\n" +
-                "🧪 סימולציית CTF מקומית — תרגול מושגים בלי לגעת ברשת אמיתית.\n" +
-                "🔐 בודק חוזק סיסמה שהמשתמש מזין מקומית בלבד.\n" +
-                "🛡️ בדיקת אבטחת הרשת המחוברת — WPA/WPA2/WPA3, עוצמת אות ופרטי חיבור זמינים.\n" +
-                "📚 שיעורים על Handshake, Hash, Salt, DNS ו‑DHCP.\n\n" +
+        hackerInfo.text = "כלי לימוד ותרגול לרשתות שבשליטתך:\n\n" +
+                "🧪 CTF מקומי — תרגול תרחישים בתוך סביבת מעבדה.\n" +
+                "🔐 בדיקת חוזק סיסמה — מתבצעת מקומית בלבד.\n" +
+                "🛡️ בדיקת אבטחת הרשת המחוברת — הצפנה, עוצמת אות ופרטי חיבור.\n" +
+                "📚 שיעורים קצרים על Wi‑Fi, Handshake, Hash, Salt, DNS ו‑DHCP.\n\n" +
                 "הכלים אינם מבצעים פריצת סיסמאות, deauthentication, יירוט תעבורה או סריקה לא מורשית."
         root.addView(hackerInfo)
 
         val ctfButton = Button(this).apply {
-            text = "🧩 פתח CTF לימודי"
+            text = "🧩 התחל תרגול CTF"
             setOnClickListener {
                 diagnosis.text = "🧩 CTF מקומי — שלב 1\n\n" +
                         "מטרה: זהה את המושג שמתאר תרגום שם מתחם לכתובת IP.\n\n" +
@@ -191,31 +191,31 @@ class MainActivity : Activity() {
         root.addView(ctfButton, LinearLayout.LayoutParams(-1, 58))
 
         val passwordButton = Button(this).apply {
-            text = "🔐 בדיקת חוזק סיסמה מקומית"
+            text = "🔐 בדוק חוזק סיסמה"
             setOnClickListener { showPasswordStrengthDialog() }
         }
         root.addView(passwordButton, LinearLayout.LayoutParams(-1, 58))
 
         val attackLabButton = Button(this).apply {
-            text = "🎯 הפעל חדירה מבוקרת למעבדת CTF"
+            text = "🎯 הרץ תרגול חדירה במעבדה המקומית"
             setOnClickListener { showControlledAttackLab() }
         }
         root.addView(attackLabButton, LinearLayout.LayoutParams(-1, 58))
 
         val hashButton = Button(this).apply {
-            text = "🧬 הדגמת Hash + Salt"
+            text = "🧬 למד Hash + Salt"
             setOnClickListener { showHashDemoDialog() }
         }
         root.addView(hashButton, LinearLayout.LayoutParams(-1, 58))
 
         val hardeningButton = Button(this).apply {
-            text = "🛡️ בדיקת הקשחת רשת"
+            text = "🛡️ בדוק הקשחת רשת"
             setOnClickListener { showHardeningChecklist() }
         }
         root.addView(hardeningButton, LinearLayout.LayoutParams(-1, 58))
 
         val lesson = TextView(this).apply {
-            text = "שיעור מהיר\n• WPA2/WPA3: מנגנוני הגנה של רשתות Wi‑Fi.\n• 4‑Way Handshake: תהליך אימות.\n• Hash ו‑Salt: מושגים בסיסיים בהגנת סיסמאות.\n• Rate Limiting: האטת ניסיונות חוזרים.\n\nכל בדיקה מיועדת לרשתות ולמכשירים שיש לך הרשאה לבדוק."
+            text = "📚 שיעור מהיר\n• WPA2/WPA3 — מנגנוני אבטחה של Wi‑Fi.\n• 4‑Way Handshake — תהליך האימות של החיבור.\n• Hash + Salt — יסודות הגנת סיסמאות.\n• Rate Limiting — הגבלת ניסיונות חוזרים.\n• DNS / DHCP — שירותים מרכזיים ברשת.\n\nכלי האפליקציה מיועדים לאבחון ולתרגול ברשתות ובמכשירים שיש לך הרשאה לבדוק."
             textSize = 16f
             setTextColor(android.graphics.Color.LTGRAY)
             setPadding(18, 24, 18, 24)
