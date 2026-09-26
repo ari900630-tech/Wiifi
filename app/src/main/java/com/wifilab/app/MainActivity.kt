@@ -39,6 +39,8 @@ class MainActivity : Activity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var diagnosis: TextView
     private lateinit var history: TextView
+    private var lastScanResults: List<ScanResult> = emptyList()
+    private var selectedNetworkName: String? = null
     private val executor = Executors.newSingleThreadExecutor()
     private val permissionRequest = 4102
 
@@ -124,6 +126,11 @@ class MainActivity : Activity() {
         }
         root.addView(networks, LinearLayout.LayoutParams(-1, -2))
 
+        val selectNetworkButton = Button(this).apply {
+            text = "🎯 בחר רשת לתרגול"
+            setOnClickListener { showNetworkSelectionDialog() }
+        }
+        root.addView(selectNetworkButton, LinearLayout.LayoutParams(-1, 58))
 
         val diagnosisTitle = TextView(this).apply {
             text = "🌐 אבחון חיבור — Internet / DNS / Gateway"
@@ -254,12 +261,9 @@ class MainActivity : Activity() {
             }
         }
 
-        val homeNav = navButton("⌂
-ראשי")
-        val wifiNav = navButton("📡
-רשתות")
-        val securityNav = navButton("🛡️
-אבטחה")
+        val homeNav = navButton("⌂\nראשי")
+        val wifiNav = navButton("📡\nרשתות")
+        val securityNav = navButton("🛡️\nאבטחה")
         bottomBar.addView(homeNav)
         bottomBar.addView(wifiNav)
         bottomBar.addView(securityNav)
@@ -306,8 +310,35 @@ class MainActivity : Activity() {
         setContentView(frame)
     }
 
+    private fun showNetworkSelectionDialog() {
+        val visible = lastScanResults
+            .filter { it.SSID.isNotBlank() }
+            .distinctBy { it.BSSID }
+            .sortedByDescending { it.level }
+
+        if (visible.isEmpty()) {
+            diagnosis.text = "📡 אין כרגע רשימת רשתות לבחירה.\n\nבצע קודם סריקת Wi‑Fi אמיתית."
+            return
+        }
+
+        val names = visible.map { "${it.SSID}  •  ${it.level} dBm" }.toTypedArray()
+        android.app.AlertDialog.Builder(this)
+            .setTitle("בחר רשת לתרגול")
+            .setItems(names) { _, which ->
+                val chosen = visible[which]
+                selectedNetworkName = chosen.SSID
+                diagnosis.text = "🎯 רשת נבחרה לתרגול\n\n" +
+                        "SSID: " + chosen.SSID + "\n" +
+                        "BSSID: " + chosen.BSSID + "\n" +
+                        "עוצמה: " + chosen.level + " dBm\n\n" +
+                        "התרגול המבוקר משתמש ברשת הזו כיעד לימודי בלבד; הבקשות בפועל נשלחות לשרת CTF מקומי (127.0.0.1) בלבד."
+            }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
     private fun showControlledAttackLab() {
-        diagnosis.text = "⏳ מפעיל שרת CTF מקומי אמיתי במכשיר…"
+        diagnosis.text = "⏳ מפעיל שרת CTF מקומי אמיתי במכשיר…\n\nרשת לתרגול: " + (selectedNetworkName ?: "לא נבחרה — התרגול עדיין מקומי בלבד")
         executor.execute {
             val server = LocalCtfServer()
             try {
@@ -335,7 +366,8 @@ class MainActivity : Activity() {
                 results.add("[" + now() + "] LAB_END status=COMPLETED")
 
                 runOnUiThread {
-                    diagnosis.text = "🎯 חדירה מבוקרת — שרת CTF מקומי אמיתי\n\n" +
+                    diagnosis.text = "🎯 תרגול חדירה מבוקר — שרת CTF מקומי אמיתי\n\n" +
+                            "רשת שנבחרה: " + (selectedNetworkName ?: "לא נבחרה") + "\n\n" +
                             "הבקשות נשלחו בפועל אל 127.0.0.1 בלבד.\n\n" +
                             "1. 🔎 Probe HTTP: " + probe.code + "\n" +
                             "2. 🔐 בדיקת /ctf/admin: " + admin.code + "\n" +
@@ -602,6 +634,7 @@ class MainActivity : Activity() {
     }
 
     private fun showScanResults(results: List<ScanResult>) {
+        lastScanResults = results
         if (results.isEmpty()) {
             networks.text = "לא נמצאו כרגע רשתות בתוצאות הסריקה.\n\nודא ש‑Wi‑Fi ומיקום מופעלים ונסה שוב."
             return
