@@ -72,20 +72,20 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(28, 28, 28, 24)
-            setBackgroundColor(android.graphics.Color.rgb(7, 11, 18))
+            setBackgroundColor(android.graphics.Color.rgb(4, 8, 16))
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
 
         val title = TextView(this).apply {
-            text = "WiFi Lab — מעבדת Wi‑Fi"
-            textSize = 30f
+            text = "⚡ WiFi LAB PRO"
+            textSize = 32f
             setTextColor(android.graphics.Color.WHITE)
             gravity = Gravity.CENTER
         }
         root.addView(title, LinearLayout.LayoutParams(-1, 70))
 
         val subtitle = TextView(this).apply {
-            text = "אבחון, לימוד ותרגול Wi‑Fi — מידע אמיתי מהמכשיר"
+            text = "מרכז שליטה לרשת הביתית • מידע אמיתי מהמכשיר • גרסה 2.0"
             textSize = 15f
             setTextColor(android.graphics.Color.LTGRAY)
             gravity = Gravity.CENTER
@@ -97,7 +97,7 @@ class MainActivity : Activity() {
             textSize = 17f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(18, 18, 18, 18)
-            setBackgroundColor(android.graphics.Color.rgb(18, 25, 38))
+            setBackgroundColor(android.graphics.Color.rgb(14, 25, 43))
         }
         root.addView(status, LinearLayout.LayoutParams(-1, -2))
 
@@ -118,13 +118,13 @@ class MainActivity : Activity() {
             setTextColor(android.graphics.Color.WHITE)
             setPadding(18, 18, 18, 18)
             setBackgroundColor(android.graphics.Color.rgb(18, 25, 38))
-            text = "📡 רשתות Wi‑Fi בסביבה\nלחץ על «סרוק רשתות Wi‑Fi» כדי להתחיל סריקה אמיתית."
+            text = "📡 רשתות Wi‑Fi בסביבה\n\nסריקה אמיתית של הרשתות שהמכשיר יכול לראות.\nלחץ על הכפתור למעלה כדי להתחיל."
         }
         root.addView(networks, LinearLayout.LayoutParams(-1, -2))
 
 
         val diagnosisTitle = TextView(this).apply {
-            text = "🌐 אבחון חיבור לאינטרנט ולרשת"
+            text = "🌐 אבחון חיבור — Internet / DNS / Gateway"
             textSize = 20f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(4, 22, 4, 10)
@@ -142,7 +142,7 @@ class MainActivity : Activity() {
         root.addView(diagnosis)
 
         val historyTitle = TextView(this).apply {
-            text = "📊 היסטוריית אבחון"
+            text = "📊 היסטוריית אבחון ובדיקות"
             textSize = 20f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(4, 22, 4, 10)
@@ -163,7 +163,7 @@ class MainActivity : Activity() {
         root.addView(history)
 
         val hackerTitle = TextView(this).apply {
-            text = "🛡️ מעבדת אבטחה ותרגול"
+            text = "🛡️ מרכז אבטחה ותרגול — חדש"
             textSize = 20f
             setTextColor(android.graphics.Color.WHITE)
             setPadding(4, 22, 4, 10)
@@ -180,7 +180,7 @@ class MainActivity : Activity() {
         root.addView(hackerInfo)
 
         val ctfButton = Button(this).apply {
-            text = "🧩 התחל תרגול CTF"
+            text = "🧩 CTF מקומי — התחל תרגול"
             setOnClickListener {
                 diagnosis.text = "🧩 CTF מקומי — שלב 1\n\n" +
                         "מטרה: זהה את המושג שמתאר תרגום שם מתחם לכתובת IP.\n\n" +
@@ -191,31 +191,31 @@ class MainActivity : Activity() {
         root.addView(ctfButton, LinearLayout.LayoutParams(-1, 58))
 
         val passwordButton = Button(this).apply {
-            text = "🔐 בדוק חוזק סיסמה"
+            text = "🔐 בדיקת סיסמה מקומית"
             setOnClickListener { showPasswordStrengthDialog() }
         }
         root.addView(passwordButton, LinearLayout.LayoutParams(-1, 58))
 
         val attackLabButton = Button(this).apply {
-            text = "🎯 הרץ תרגול חדירה במעבדה המקומית"
+            text = "🎯 הפעל תרגול חדירה — מעבדה מקומית"
             setOnClickListener { showControlledAttackLab() }
         }
         root.addView(attackLabButton, LinearLayout.LayoutParams(-1, 58))
 
         val hashButton = Button(this).apply {
-            text = "🧬 למד Hash + Salt"
+            text = "🧬 Hash + Salt — הדגמה"
             setOnClickListener { showHashDemoDialog() }
         }
         root.addView(hashButton, LinearLayout.LayoutParams(-1, 58))
 
         val hardeningButton = Button(this).apply {
-            text = "🛡️ בדוק הקשחת רשת"
+            text = "🛡️ בדיקת הקשחת רשת"
             setOnClickListener { showHardeningChecklist() }
         }
         root.addView(hardeningButton, LinearLayout.LayoutParams(-1, 58))
 
         val lesson = TextView(this).apply {
-            text = "📚 שיעור מהיר\n• WPA2/WPA3 — מנגנוני אבטחה של Wi‑Fi.\n• 4‑Way Handshake — תהליך האימות של החיבור.\n• Hash + Salt — יסודות הגנת סיסמאות.\n• Rate Limiting — הגבלת ניסיונות חוזרים.\n• DNS / DHCP — שירותים מרכזיים ברשת.\n\nכלי האפליקציה מיועדים לאבחון ולתרגול ברשתות ובמכשירים שיש לך הרשאה לבדוק."
+            text = "📚 מרכז לימוד מהיר\n• WPA2/WPA3 — מנגנוני אבטחה של Wi‑Fi.\n• 4‑Way Handshake — תהליך האימות של החיבור.\n• Hash + Salt — יסודות הגנת סיסמאות.\n• Rate Limiting — הגבלת ניסיונות חוזרים.\n• DNS / DHCP — שירותים מרכזיים ברשת.\n\nכלי האפליקציה מיועדים לאבחון ולתרגול ברשתות ובמכשירים שיש לך הרשאה לבדוק."
             textSize = 16f
             setTextColor(android.graphics.Color.LTGRAY)
             setPadding(18, 24, 18, 24)
